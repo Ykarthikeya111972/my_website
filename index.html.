@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>H.MED – AI Health Triage Assistant</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">
+      <h2>H.MED</h2>
+      <span>AI Health Triage Assistant</span>
+    </div>
+    <div class="chat-box" id="chatBox"></div>
+    <div class="chat-input">
+      <input type="text" id="userInput" placeholder="Type your symptoms or concerns..." autocomplete="off" />
+      <button id="sendBtn" type="button">Send</button>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
