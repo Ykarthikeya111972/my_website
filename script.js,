@@ -1,0 +1,125 @@
+// --- Health Quotes for Awareness ---
+const quotes = [
+  "Health is not just the absence of illness; it is a state of complete well-being. – Unknown",
+  "The greatest wealth is health. – Virgil",
+  "He who has health has hope, and he who has hope has everything. – Thomas Carlyle",
+  "It is health that is real wealth and not pieces of gold and silver. – Mahatma Gandhi",
+  "Time and health are two precious assets we don’t recognize and appreciate until they have been depleted. – Denis Waitley",
+  "An ounce of prevention is worth a pound of cure. – Benjamin Franklin",
+  "Value life. What you do today impacts your tomorrows. – Unknown"
+];
+
+// -- Infermedica API setup (demo keys must be replaced!) --
+const infermedicaAppId = "YOUR_APP_ID";
+const infermedicaAppKey = "YOUR_APP_KEY";
+
+async function askInfermedica(text) {
+  let resp;
+  try {
+    resp = await fetch("https://api.infermedica.com/v3/parse", {
+      method: "POST",
+      headers: {
+        "App-Id": infermedicaAppId,
+        "App-Key": infermedicaAppKey,
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({ text })
+    });
+  } catch (err) {
+    throw new Error("Network error");
+  }
+  if (!resp.ok) throw new Error("API error " + resp.status);
+  return await resp.json();
+}
+
+// -- Chat state and helpers --
+const chatBox = document.getElementById('chatBox');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+let sessionTranscript = [];
+
+function addMessage(text, sender='bot') {
+  const div = document.createElement('div');
+  div.className = 'message ' + sender;
+  div.innerText = text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  sessionTranscript.push({ sender, text });
+}
+
+function downloadTranscript() {
+  let text = 'H.MED Session Transcript:\n\n';
+  sessionTranscript.forEach(line => {
+    text += (line.sender === 'user' ? 'You: ' : 'Bot: ') + line.text + '\n';
+  });
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'HMED_session.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function startOver() {
+  sessionTranscript = [];
+  chatBox.innerHTML = '';
+  bootChat();
+}
+
+// -- Main chatbot handler --
+async function handleUserInput(userMsg) {
+  const lower = userMsg.toLowerCase().trim();
+  addMessage(userMsg, 'user');
+
+  // --- Command handling ---
+  if (lower === "start over" || lower === "restart") {
+    startOver();
+    return;
+  }
+  if (lower === "download" || lower === "save") {
+    downloadTranscript();
+    return;
+  }
+
+  addMessage("Processing your symptoms...", 'bot');
+
+  // --- Medical NLP --
+  try {
+    const data = await askInfermedica(userMsg);
+    if (data.mentions && data.mentions.length > 0) {
+      addMessage("🩺 Detected symptoms: " + data.mentions.map(m => m.name).join(", "), 'bot');
+      if (data.question && data.question.text) {
+        addMessage("🤖 Next question: " + data.question.text, 'bot');
+      } else {
+        addMessage("Would you like to share any additional symptoms or context? Type 'done' for advice, 'download' to save or 'start over' to reset.", 'bot');
+      }
+    } else {
+      addMessage("I wasn't able to detect clear symptoms. Please describe your situation in more detail, or rephrase your message.", 'bot');
+    }
+  } catch (err) {
+    addMessage("Sorry, I couldn't process your symptoms right now. Try again later or rephrase.", 'bot');
+  }
+}
+
+sendBtn.addEventListener('click', () => {
+  const val = userInput.value;
+  if (!val.trim()) return;
+  handleUserInput(val);
+  userInput.value = '';
+});
+
+userInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendBtn.click();
+});
+
+// -- Chatbot startup --
+function bootChat() {
+  const q = quotes[Math.floor(Math.random() * quotes.length)];
+  addMessage("💡 " + q, 'bot');
+  addMessage("Welcome to H.MED! Type your symptoms, health concerns, or questions in plain language. When done, type 'download' to save your chat or 'start over' to reset.", 'bot');
+  addMessage("⚠️ Disclaimer: This is for informational purposes only, not medical diagnosis. Urgent symptoms require professional care.", 'bot');
+}
+
+bootChat();
